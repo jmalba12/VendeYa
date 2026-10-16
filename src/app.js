@@ -8,6 +8,7 @@
   const { filterAndSortProducts, sortByCreatedAtDesc } = require('./catalog');
   const { hasValidImageSignature } = require('./validation');
   const { createRegistrationHandler } = require('./registration');
+  const { createFirebaseSessionHandler } = require('./firebase-auth');
   const categories = ['Tecnología','Hogar','Ropa y accesorios','Deportes','Libros','Juguetes','Belleza','Otros'];
   const multer = require('multer');
   const { Readable } = require('stream');
@@ -63,22 +64,11 @@ const uploadImage = file => new Promise((resolve, reject) => {
   app.get('/api/health', (req, res) =>
     res.json({ estado: 'ok', mensaje: 'API VendeYa funcionando' }));
 
-  // Firebase Web API keys are public client identifiers. Return this key to
-  // the same-origin browser so Firebase Auth calls carry an allowed referrer.
-  app.get('/api/config/firebase', (req, res) => {
-    const apiKey = process.env.FIREBASE_WEB_API_KEY;
-    if (!apiKey) {
-      console.error('[firebase.config] code=FIREBASE_WEB_API_KEY_MISSING');
-      return res.status(503).json({ error: 'Firebase Authentication no está configurado.' });
-    }
-    res.set('Cache-Control', 'no-store');
-    res.json({ apiKey, projectId: admin.app().options.projectId || null });
-  });
-
   app.get('/api/categories', (req, res) => res.json({ categories }));
   app.get('/api/users/me', requireAuth, (req, res) => res.json({ user: req.user }));
 
   // 2. REGISTRO E INICIO DE SESIÓN
+  app.post('/api/auth/session', createFirebaseSessionHandler());
   app.post('/api/auth/register', createRegistrationHandler({ auth, db, admin }));
 
   // 3. PRODUCTOS: LISTAR, BUSCAR Y CONSULTAR
