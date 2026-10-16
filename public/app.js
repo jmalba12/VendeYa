@@ -46,50 +46,6 @@
     }
     return data;
   }
-  let firebaseApiKey = '';
-  async function getFirebaseApiKey() {
-    if (!firebaseApiKey) {
-      const config = await api('/api/config/firebase', {}, '');
-      firebaseApiKey = config.apiKey || '';
-      if (!firebaseApiKey) throw Error('Firebase Authentication no está configurado.');
-    }
-    return firebaseApiKey;
-  }
-  async function firebaseAuth(action, payload) {
-    const key = await getFirebaseApiKey();
-    let response;
-    try {
-      response = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:${action}?key=${encodeURIComponent(key)}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload), referrerPolicy: 'strict-origin-when-cross-origin' }
-      );
-    } catch {
-      throw Error('No se pudo conectar con Firebase Authentication. Revisa tu conexión e inténtalo de nuevo.');
-    }
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const code = data.error?.message || '';
-      const messages = {
-        EMAIL_EXISTS: 'Ese correo ya está registrado.',
-        EMAIL_NOT_FOUND: 'No existe una cuenta con ese correo.',
-        INVALID_PASSWORD: 'El correo o la contraseña no son correctos.',
-        INVALID_LOGIN_CREDENTIALS: 'El correo o la contraseña no son correctos.',
-        INVALID_CUSTOM_TOKEN: 'Firebase no aceptó el token de sesión. Intenta iniciar sesión con tu correo y contraseña.',
-        MISSING_CUSTOM_TOKEN: 'Firebase no recibió el token de sesión. Intenta iniciar sesión con tu correo y contraseña.',
-        USER_DISABLED: 'Esta cuenta está deshabilitada en Firebase Authentication. Contacta al administrador.',
-        OPERATION_NOT_ALLOWED: 'Email/Password no está habilitado en Firebase Authentication.',
-        API_KEY_SERVICE_BLOCKED: 'Google bloqueó la clave para Identity Toolkit. Revisa que FIREBASE_WEB_API_KEY sea la clave web del proyecto vendey-dd32d y que Identity Toolkit API esté permitida.',
-        API_KEY_HTTP_REFERRER_BLOCKED: 'El dominio de VendeYa no está autorizado en las restricciones de la clave de Firebase.',
-        API_KEY_INVALID: 'La clave web de Firebase no es válida. Configura FIREBASE_WEB_API_KEY con la clave web de vendey-dd32d.',
-        CREDENTIAL_MISMATCH: 'La clave web y Firebase Admin pertenecen a proyectos distintos. Configura ambas credenciales para vendey-dd32d.',
-        PROJECT_NOT_FOUND: 'Firebase no encontró el proyecto asociado a la clave web. Revisa FIREBASE_WEB_API_KEY en Vercel.'
-      };
-      const safeCode = /^[A-Z0-9_]+$/.test(code) ? code : '';
-      throw Error(messages[code] || `Firebase Authentication rechazó la solicitud${safeCode ? ` (código: ${safeCode})` : ''}. Revisa la configuración de Firebase e inténtalo de nuevo.`);
-    }
-    return data;
-  }
   function setAuthUI() {
     const signed = Boolean(state.token && state.user);
     $('accountActions').classList.toggle('hidden', signed);
@@ -277,29 +233,28 @@
     try {
       let d, session;
       if (reg) {
-        await getFirebaseApiKey();
         d = await api('/api/auth/register', { method: 'POST', body: JSON.stringify(body) });
         try {
-          session = await firebaseAuth('signInWithCustomToken', {
-            token: d.customToken, returnSecureToken: true
-          });
+          session = await api('/api/auth/session', { method: 'POST', body: JSON.stringify({
+            mode: 'exchange', customToken: d.customToken
+          }) }, '');
         } catch (customTokenError) {
           // If the Admin-created custom token cannot be exchanged by Firebase,
           // authenticate the newly created account through the same supported
           // Email/Password flow used by the login form. This does not create a
           // second account and keeps Firebase Authentication enabled.
           try {
-            session = await firebaseAuth('signInWithPassword', {
-              email, password, returnSecureToken: true
-            });
+            session = await api('/api/auth/session', { method: 'POST', body: JSON.stringify({
+              mode: 'login', email, password
+            }) }, '');
           } catch (passwordError) {
             throw Error(`La cuenta se creó, pero Firebase no pudo iniciar la sesión: ${passwordError.message || customTokenError.message}`);
           }
         }
       } else {
-        session = await firebaseAuth('signInWithPassword', {
-          email, password, returnSecureToken: true
-        });
+        session = await api('/api/auth/session', { method: 'POST', body: JSON.stringify({
+          mode: 'login', email, password
+        }) }, '');
         const profile = await api('/api/users/me', {}, session.idToken);
         d = { user: profile.user };
       }
