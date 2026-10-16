@@ -30,7 +30,7 @@ test('registration creates custom tokens on the server and exchanges Firebase se
   assert.match(frontend, /INVALID_CUSTOM_TOKEN/);
   assert.match(frontend, /api\('\/api\/users\/me'/);
   assert.doesNotMatch(app, /identitytoolkit\.googleapis\.com/);
-  assert.match(html, /app\.js\?v=3/);
+  assert.match(html, /app\.js\?v=4/);
   assert.match(frontend, /Object\.assign\(body, \{ name, phone \}\)/);
 });
 
