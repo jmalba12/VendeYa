@@ -1,0 +1,23 @@
+{
+  "name": "vendeya",
+  "version": "1.0.0",
+  "description": "VendeYa: compra y venta local entre personas",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test",
+    "index:products": "node scripts/reindex-products.js --apply"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cloudinary": "^2.11.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "helmet": "^8.0.0",
+    "multer": "^2.4.0"
+  }
+}

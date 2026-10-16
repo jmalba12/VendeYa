@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.env.*
+!.env.example
+.vercel/
+*.pem
+*.key
+serviceAccountKey.json
+*firebase-adminsdk*.json
+npm-debug.log*
+Firebase-Privado.json
+*service-account*.json
+*firebase-admin*.json
