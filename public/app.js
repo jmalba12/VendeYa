@@ -75,6 +75,9 @@
         EMAIL_NOT_FOUND: 'No existe una cuenta con ese correo.',
         INVALID_PASSWORD: 'El correo o la contraseña no son correctos.',
         INVALID_LOGIN_CREDENTIALS: 'El correo o la contraseña no son correctos.',
+        INVALID_CUSTOM_TOKEN: 'Firebase no aceptó el token de sesión. Intenta iniciar sesión con tu correo y contraseña.',
+        MISSING_CUSTOM_TOKEN: 'Firebase no recibió el token de sesión. Intenta iniciar sesión con tu correo y contraseña.',
+        USER_DISABLED: 'Esta cuenta está deshabilitada en Firebase Authentication. Contacta al administrador.',
         OPERATION_NOT_ALLOWED: 'Email/Password no está habilitado en Firebase Authentication.',
         API_KEY_SERVICE_BLOCKED: 'Google bloqueó la clave para Identity Toolkit. Revisa que FIREBASE_WEB_API_KEY sea la clave web del proyecto vendey-dd32d y que Identity Toolkit API esté permitida.',
         API_KEY_HTTP_REFERRER_BLOCKED: 'El dominio de VendeYa no está autorizado en las restricciones de la clave de Firebase.'
@@ -276,8 +279,18 @@
           session = await firebaseAuth('signInWithCustomToken', {
             token: d.customToken, returnSecureToken: true
           });
-        } catch (error) {
-          throw Error(`La cuenta se creó, pero no se pudo iniciar la sesión. Intenta iniciar sesión con el mismo correo y contraseña. ${error.message}`);
+        } catch (customTokenError) {
+          // If the Admin-created custom token cannot be exchanged by Firebase,
+          // authenticate the newly created account through the same supported
+          // Email/Password flow used by the login form. This does not create a
+          // second account and keeps Firebase Authentication enabled.
+          try {
+            session = await firebaseAuth('signInWithPassword', {
+              email, password, returnSecureToken: true
+            });
+          } catch (passwordError) {
+            throw Error(`La cuenta se creó, pero Firebase no pudo iniciar la sesión: ${passwordError.message || customTokenError.message}`);
+          }
         }
       } else {
         session = await firebaseAuth('signInWithPassword', {
@@ -498,3 +511,4 @@
     try { if ((await api('/api/health')).estado !== 'ok') throw Error(); }
     catch { toast('La API no responde. Revisa el servidor.'); }
   })();
+

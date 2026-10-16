@@ -26,9 +26,11 @@ test('registration creates custom tokens on the server and exchanges Firebase se
   assert.match(frontend, /api\('\/api\/auth\/register'/);
   assert.match(frontend, /firebaseAuth\('signInWithCustomToken'/);
   assert.match(frontend, /firebaseAuth\('signInWithPassword'/);
+  assert.match(frontend, /catch \(customTokenError\)/);
+  assert.match(frontend, /INVALID_CUSTOM_TOKEN/);
   assert.match(frontend, /api\('\/api\/users\/me'/);
   assert.doesNotMatch(app, /identitytoolkit\.googleapis\.com/);
-  assert.match(html, /app\.js\?v=2/);
+  assert.match(html, /app\.js\?v=3/);
   assert.match(frontend, /Object\.assign\(body, \{ name, phone \}\)/);
 });
 
@@ -146,4 +148,5 @@ test('publishing refreshes both the catalog and seller dashboard', () => {
   assert.match(app, /req\.files/);
   assert.match(app, /firestorePermissionDenied/);
 });
+
 
