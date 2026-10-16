@@ -80,9 +80,13 @@
         USER_DISABLED: 'Esta cuenta está deshabilitada en Firebase Authentication. Contacta al administrador.',
         OPERATION_NOT_ALLOWED: 'Email/Password no está habilitado en Firebase Authentication.',
         API_KEY_SERVICE_BLOCKED: 'Google bloqueó la clave para Identity Toolkit. Revisa que FIREBASE_WEB_API_KEY sea la clave web del proyecto vendey-dd32d y que Identity Toolkit API esté permitida.',
-        API_KEY_HTTP_REFERRER_BLOCKED: 'El dominio de VendeYa no está autorizado en las restricciones de la clave de Firebase.'
+        API_KEY_HTTP_REFERRER_BLOCKED: 'El dominio de VendeYa no está autorizado en las restricciones de la clave de Firebase.',
+        API_KEY_INVALID: 'La clave web de Firebase no es válida. Configura FIREBASE_WEB_API_KEY con la clave web de vendey-dd32d.',
+        CREDENTIAL_MISMATCH: 'La clave web y Firebase Admin pertenecen a proyectos distintos. Configura ambas credenciales para vendey-dd32d.',
+        PROJECT_NOT_FOUND: 'Firebase no encontró el proyecto asociado a la clave web. Revisa FIREBASE_WEB_API_KEY en Vercel.'
       };
-      throw Error(messages[code] || 'Firebase Authentication rechazó la solicitud. Revisa los datos e inténtalo de nuevo.');
+      const safeCode = /^[A-Z0-9_]+$/.test(code) ? code : '';
+      throw Error(messages[code] || `Firebase Authentication rechazó la solicitud${safeCode ? ` (código: ${safeCode})` : ''}. Revisa la configuración de Firebase e inténtalo de nuevo.`);
     }
     return data;
   }

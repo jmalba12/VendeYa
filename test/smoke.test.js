@@ -20,6 +20,7 @@ test('registration creates custom tokens on the server and exchanges Firebase se
   const html = read('public/index.html');
   assert.match(app, /app\.post\('\/api\/auth\/register', createRegistrationHandler/);
   assert.match(app, /app\.get\('\/api\/config\/firebase'/);
+  assert.match(app, /projectId: admin\.app\(\)\.options\.projectId/);
   assert.match(registration, /auth\.createCustomToken/);
   assert.match(registration, /customToken/);
   assert.match(registration, /auth\/email-already-exists/);
@@ -28,9 +29,11 @@ test('registration creates custom tokens on the server and exchanges Firebase se
   assert.match(frontend, /firebaseAuth\('signInWithPassword'/);
   assert.match(frontend, /catch \(customTokenError\)/);
   assert.match(frontend, /INVALID_CUSTOM_TOKEN/);
+  assert.match(frontend, /CREDENTIAL_MISMATCH/);
+  assert.match(frontend, /código: \$\{safeCode\}/);
   assert.match(frontend, /api\('\/api\/users\/me'/);
   assert.doesNotMatch(app, /identitytoolkit\.googleapis\.com/);
-  assert.match(html, /app\.js\?v=4/);
+  assert.match(html, /app\.js\?v=5/);
   assert.match(frontend, /Object\.assign\(body, \{ name, phone \}\)/);
 });
 

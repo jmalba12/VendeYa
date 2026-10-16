@@ -72,7 +72,7 @@ const uploadImage = file => new Promise((resolve, reject) => {
       return res.status(503).json({ error: 'Firebase Authentication no está configurado.' });
     }
     res.set('Cache-Control', 'no-store');
-    res.json({ apiKey });
+    res.json({ apiKey, projectId: admin.app().options.projectId || null });
   });
 
   app.get('/api/categories', (req, res) => res.json({ categories }));
@@ -380,3 +380,4 @@ app.post('/api/products', requireAuth, upload.array('images', 5),
   });
 
   module.exports = app;
+
