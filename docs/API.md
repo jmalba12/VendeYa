@@ -4,7 +4,7 @@ El frontend de `public/index.html` carga `public/app.js`, que llama a la API Exp
 
 ## Historias de usuario
 
-- **HU-01 · Cuenta:** `POST /api/auth/register`, `POST /api/auth/login` y `GET /api/users/me`.
+- **HU-01 · Cuenta:** `GET /api/config/firebase`, `POST /api/auth/register` y `GET /api/users/me`. El navegador inicia la sesión directamente con Firebase Authentication para respetar la restricción HTTP referrer de la clave web.
 - **HU-02 · Publicación:** `POST /api/products`, `PUT /api/products/:id` y `DELETE /api/products/:id`. Crear y modificar requiere autenticación; solo el propietario puede cambiar o retirar su producto.
 - **HU-03 · Explorar:** `GET /api/categories`, `GET /api/products` y `GET /api/products/:id`.
 - **HU-04 · Compra:** `POST /api/orders`, `GET /api/orders` y `GET /api/orders/:id`. El flujo actual solo registra solicitudes demostrativas; no confirma pagos ni ventas.
@@ -14,9 +14,9 @@ El frontend de `public/index.html` carga `public/app.js`, que llama a la API Exp
 | Método y ruta | Entrada | Acceso | Resultado |
 |---|---|---|---|
 | `GET /api/health` | — | Público | Estado de la API. |
+| `GET /api/config/firebase` | — | Público | Devuelve la clave web pública de Firebase; las solicitudes de Auth salen desde el navegador permitido. |
 | `GET /api/categories` | — | Público | Categorías habilitadas. |
-| `POST /api/auth/register` | `{name,email,password,phone}` | Público | Crea la cuenta y entrega sesión Firebase. Contraseña: 8 caracteres, mayúscula, minúscula y número. |
-| `POST /api/auth/login` | `{email,password}` | Público | Inicia sesión; requiere `FIREBASE_WEB_API_KEY`. |
+| `POST /api/auth/register` | `{name,email,password,phone}` | Público | Crea la cuenta y el perfil y entrega un token personalizado para intercambiarlo en Firebase desde el navegador. Contraseña: 8 caracteres, mayúscula, minúscula y número. |
 | `GET /api/users/me` | Bearer token | Sesión | Perfil asociado al UID del token. |
 | `GET /api/products` | `search,category,minPrice,maxPrice,availability,page,limit` | Público | Catálogo paginado. `availability`: `available` (predeterminado), `sold` o `all`; `limit` máximo 50. |
 | `GET /api/products/:id` | ID de producto | Público | Detalle; productos retirados devuelven 404. |

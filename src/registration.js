@@ -17,7 +17,7 @@ function firebaseRegistrationError(code) {
   return { status: 500, message: 'No se pudo completar el registro. Revisa el diagnóstico del servidor.' };
 }
 
-function createRegistrationHandler({ auth, db, admin, fetchImpl = fetch, logger = console }) {
+function createRegistrationHandler({ auth, db, admin, logger = console }) {
   return async function register(req, res) {
     const body = req.body || {};
     const name = clean(body.name);
@@ -32,12 +32,6 @@ function createRegistrationHandler({ auth, db, admin, fetchImpl = fetch, logger 
       return res.status(400).json({ error: 'Revisa nombre, correo y teléfono; la contraseña requiere 8 caracteres, mayúscula, minúscula y número.' });
     }
 
-    const webKey = process.env.FIREBASE_WEB_API_KEY;
-    if (!webKey) {
-      logger.error('[auth.register] stage=config code=FIREBASE_WEB_API_KEY_MISSING');
-      return res.status(503).json({ error: 'Falta configurar FIREBASE_WEB_API_KEY para completar el registro.' });
-    }
-
     let user;
     let stage = 'create-user';
     try {
@@ -50,19 +44,8 @@ function createRegistrationHandler({ auth, db, admin, fetchImpl = fetch, logger 
       });
       stage = 'create-custom-token';
       const customToken = await auth.createCustomToken(user.uid);
-      stage = 'exchange-session';
-      const response = await fetchImpl('https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=' + encodeURIComponent(webKey), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: customToken, returnSecureToken: true })
-      });
-      const session = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const firebaseCode = session.error?.message?.split(':')[0] || 'FIREBASE_SESSION_EXCHANGE_FAILED';
-        throw Object.assign(new Error('Firebase session exchange failed'), { firebaseCode });
-      }
       return res.status(201).json({
-        uid: user.uid, idToken: session.idToken, refreshToken: session.refreshToken,
-        expiresIn: session.expiresIn,
+        uid: user.uid, customToken,
         user: { uid: user.uid, email, name, role: 'user' }
       });
     } catch (error) {

@@ -16,7 +16,7 @@ npm install
 npm start
 ```
 
-Abre `http://localhost:3000`. Ejecuta `npm test` para las verificaciones incluidas. El registro y el inicio de sesión necesitan `FIREBASE_WEB_API_KEY`, correspondiente al mismo proyecto que la cuenta de servicio; el proveedor Email/Password debe estar activo en Firebase Console. La publicación necesita las tres variables de Cloudinary.
+Abre `http://localhost:3000`. Ejecuta `npm test` para las verificaciones incluidas. El registro y el inicio de sesión necesitan `FIREBASE_WEB_API_KEY`, correspondiente al mismo proyecto que la cuenta de servicio; el proveedor Email/Password debe estar activo en Firebase Console. Las llamadas de Firebase Authentication se realizan desde el navegador para respetar las restricciones HTTP referrer de la clave web. La publicación necesita las tres variables de Cloudinary.
 
 ## Firestore
 

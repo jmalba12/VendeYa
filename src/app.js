@@ -63,38 +63,23 @@ const uploadImage = file => new Promise((resolve, reject) => {
   app.get('/api/health', (req, res) =>
     res.json({ estado: 'ok', mensaje: 'API VendeYa funcionando' }));
 
+  // Firebase Web API keys are public client identifiers. Return this key to
+  // the same-origin browser so Firebase Auth calls carry an allowed referrer.
+  app.get('/api/config/firebase', (req, res) => {
+    const apiKey = process.env.FIREBASE_WEB_API_KEY;
+    if (!apiKey) {
+      console.error('[firebase.config] code=FIREBASE_WEB_API_KEY_MISSING');
+      return res.status(503).json({ error: 'Firebase Authentication no está configurado.' });
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json({ apiKey });
+  });
+
   app.get('/api/categories', (req, res) => res.json({ categories }));
   app.get('/api/users/me', requireAuth, (req, res) => res.json({ user: req.user }));
 
   // 2. REGISTRO E INICIO DE SESIÓN
   app.post('/api/auth/register', createRegistrationHandler({ auth, db, admin }));
-
-  app.post('/api/auth/login', asyncRoute(async (req, res) => {
-    const email = clean(req.body.email).toLowerCase();
-    const password = typeof req.body.password === 'string' ? req.body.password : '';
-    const key = process.env.FIREBASE_WEB_API_KEY;
-    if (!key || !email || !password)
-      return res.status(400).json({ error: 'Configura la API key e ingresa correo y contraseña.' });
-
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(key)}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, returnSecureToken: true }) }
-    );
-    const data = await response.json();
-    if (!response.ok) {
-      console.error('[Firebase login]', data.error?.message || 'Error desconocido');
-      return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
-    }
-    const snap = await db.collection('users').doc(data.localId).get();
-    const profile = snap.exists ? snap.data() : {};
-    res.json({
-      idToken: data.idToken, refreshToken: data.refreshToken,
-      expiresIn: data.expiresIn, uid: data.localId,
-      user: { uid: data.localId, email: data.email,
-        name: profile.name || '', role: profile.role || 'user' }
-    });
-  }));
 
   // 3. PRODUCTOS: LISTAR, BUSCAR Y CONSULTAR
   app.get('/api/products', asyncRoute(async (req, res) => {

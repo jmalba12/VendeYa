@@ -26,11 +26,11 @@
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
     })[c]);
   }
-  async function api(path, options = {}) {
+  async function api(path, options = {}, authToken = state.token) {
     const headers = { ...(options.headers || {}) };
     if (options.body && !(options.body instanceof FormData))
       headers['Content-Type'] = 'application/json';
-    if (state.token) headers.Authorization = `Bearer ${state.token}`;
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
     let res;
     try { res = await fetch(path, { ...options, headers }); }
     catch {
@@ -43,6 +43,43 @@
     if (!res.ok) {
       if (res.status === 401 && state.token) logout(false);
       throw Error(data.error || 'Ocurrió un error.');
+    }
+    return data;
+  }
+  let firebaseApiKey = '';
+  async function getFirebaseApiKey() {
+    if (!firebaseApiKey) {
+      const config = await api('/api/config/firebase', {}, '');
+      firebaseApiKey = config.apiKey || '';
+      if (!firebaseApiKey) throw Error('Firebase Authentication no está configurado.');
+    }
+    return firebaseApiKey;
+  }
+  async function firebaseAuth(action, payload) {
+    const key = await getFirebaseApiKey();
+    let response;
+    try {
+      response = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:${action}?key=${encodeURIComponent(key)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload), referrerPolicy: 'strict-origin-when-cross-origin' }
+      );
+    } catch {
+      throw Error('No se pudo conectar con Firebase Authentication. Revisa tu conexión e inténtalo de nuevo.');
+    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const code = data.error?.message || '';
+      const messages = {
+        EMAIL_EXISTS: 'Ese correo ya está registrado.',
+        EMAIL_NOT_FOUND: 'No existe una cuenta con ese correo.',
+        INVALID_PASSWORD: 'El correo o la contraseña no son correctos.',
+        INVALID_LOGIN_CREDENTIALS: 'El correo o la contraseña no son correctos.',
+        OPERATION_NOT_ALLOWED: 'Email/Password no está habilitado en Firebase Authentication.',
+        API_KEY_SERVICE_BLOCKED: 'Google bloqueó la clave para Identity Toolkit. Revisa que FIREBASE_WEB_API_KEY sea la clave web del proyecto vendey-dd32d y que Identity Toolkit API esté permitida.',
+        API_KEY_HTTP_REFERRER_BLOCKED: 'El dominio de VendeYa no está autorizado en las restricciones de la clave de Firebase.'
+      };
+      throw Error(messages[code] || 'Firebase Authentication rechazó la solicitud. Revisa los datos e inténtalo de nuevo.');
     }
     return data;
   }
@@ -231,14 +268,26 @@
     b.disabled = true;
 
     try {
-      let d;
+      let d, session;
       if (reg) {
+        await getFirebaseApiKey();
         d = await api('/api/auth/register', { method: 'POST', body: JSON.stringify(body) });
+        try {
+          session = await firebaseAuth('signInWithCustomToken', {
+            token: d.customToken, returnSecureToken: true
+          });
+        } catch (error) {
+          throw Error(`La cuenta se creó, pero no se pudo iniciar la sesión. Intenta iniciar sesión con el mismo correo y contraseña. ${error.message}`);
+        }
       } else {
-        d = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        session = await firebaseAuth('signInWithPassword', {
+          email, password, returnSecureToken: true
+        });
+        const profile = await api('/api/users/me', {}, session.idToken);
+        d = { user: profile.user };
       }
 
-      state.token = d.idToken;
+      state.token = session.idToken;
       state.user = d.user;
       sessionStorage.setItem('vendeyaToken', state.token);
       sessionStorage.setItem('vendeyaUser', JSON.stringify(state.user));

@@ -13,15 +13,22 @@ test('frontend selectors exist in the HTML page', () => {
   assert.deepEqual([...new Set(selectors)].filter(id => !ids.has(id)), []);
 });
 
-test('registration returns Firebase ID tokens and validates account data', () => {
+test('registration creates custom tokens on the server and exchanges Firebase sessions in the browser', () => {
   const app = read('src/app.js');
   const registration = read('src/registration.js');
   const frontend = read('public/app.js');
+  const html = read('public/index.html');
   assert.match(app, /app\.post\('\/api\/auth\/register', createRegistrationHandler/);
+  assert.match(app, /app\.get\('\/api\/config\/firebase'/);
   assert.match(registration, /auth\.createCustomToken/);
-  assert.match(registration, /idToken: session\.idToken/);
+  assert.match(registration, /customToken/);
   assert.match(registration, /auth\/email-already-exists/);
   assert.match(frontend, /api\('\/api\/auth\/register'/);
+  assert.match(frontend, /firebaseAuth\('signInWithCustomToken'/);
+  assert.match(frontend, /firebaseAuth\('signInWithPassword'/);
+  assert.match(frontend, /api\('\/api\/users\/me'/);
+  assert.doesNotMatch(app, /identitytoolkit\.googleapis\.com/);
+  assert.match(html, /app\.js\?v=2/);
   assert.match(frontend, /Object\.assign\(body, \{ name, phone \}\)/);
 });
 
@@ -94,11 +101,11 @@ test('four account, sell, discover and buy stories have connected endpoints', ()
   const client = read('public/app.js');
   const app = read('src/app.js');
   assert.match(client, /api\('\/api\/auth\/register'/);
-  assert.match(client, /api\('\/api\/auth\/login'/);
+  assert.match(client, /firebaseAuth\('signInWithPassword'/);
   assert.match(client, /api\('\/api\/products'/);
   assert.match(client, /api\('\/api\/orders'/);
   assert.match(app, /app\.post\('\/api\/auth\/register'/);
-  assert.match(app, /app\.post\('\/api\/auth\/login'/);
+  assert.match(app, /app\.get\('\/api\/users\/me'/);
   assert.match(app, /app\.get\('\/api\/products'/);
   assert.match(app, /app\.post\('\/api\/orders'/);
 });
